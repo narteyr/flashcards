@@ -1,94 +1,73 @@
-# Course Population Script
+# Scripts
 
-This directory contains utility scripts for managing course data.
+This directory contains utility scripts for the Dartmouth Flashcard Builder project.
 
-## populate-courses.ts
+## 📋 Overview
 
-Populates Firestore with all courses from Dartmouth's course catalog.
+All course population functionality has been moved to the web UI for better usability and real-time monitoring.
 
-### What it does:
+## 🌐 Course Population (Web UI - Recommended)
 
-1. Reads all programs from `public/docs/courses.json`
-2. For each program, scrapes the Dartmouth course catalog to get all courses
-3. Stores each course in Firestore with the following structure:
+Instead of running command-line scripts, use the **admin web interface**:
+
+### How to Use:
+
+1. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+2. Navigate to the admin page:
+   ```
+   http://localhost:3000/admin/populate
+   ```
+
+3. Click **"Start Population"** to scrape and store all Dartmouth courses
+
+### Benefits of Web UI:
+
+- ✅ **Real-time progress tracking** - See exactly what's happening
+- ✅ **Visual logs** - Color-coded terminal output
+- ✅ **Statistics dashboard** - Live stats on programs processed, courses added
+- ✅ **Error visibility** - Immediately see which programs failed
+- ✅ **No command-line setup** - Just click a button!
+
+### What it Does:
+
+1. Reads program URLs from `public/docs/programs.json`
+2. Scrapes each Dartmouth program's course listing
+3. Stores data in Firestore with this structure:
    ```typescript
+   // Collection: programs
+   // Document ID: Program code (e.g., "COSC")
    {
-     code: string,        // e.g., "COSC 50"
-     name: string,        // e.g., "Software Design and Implementation"
-     programCode: string, // e.g., "COSC"
-     programName: string, // e.g., "Computer Science"
+     programCode: "COSC",
+     programName: "Computer Science",
+     programUrl: "https://...",
+     courses: [
+       {
+         code: "COSC 50",
+         name: "Software Design and Implementation"
+       }
+       // ... more courses
+     ],
+     totalCourses: 45,
      createdAt: Date,
      updatedAt: Date
    }
    ```
-4. Uses the course code (with spaces replaced by underscores) as the document ID
 
-### Prerequisites:
+### Expected Runtime:
 
-1. **Environment Variables**: Make sure your `.env.local` file contains:
-   ```bash
-   OPENAI_API_KEY=sk-...
-   FIREBASE_API_KEY=...
-   FIREBASE_AUTH_DOMAIN=...
-   FIREBASE_PROJECT_ID=...
-   FIREBASE_STORAGE_BUCKET=...
-   FIREBASE_MESSAGING_SENDER_ID=...
-   FIREBASE_APP_ID=...
-   ```
+- **Programs**: ~49 programs
+- **Time per program**: 2-3 seconds
+- **Total time**: 10-15 minutes
+- **Rate limiting**: 1 second delay between programs
 
-2. **Dependencies**: Install required packages:
-   ```bash
-   npm install
-   ```
+## 📝 Historical Note
 
-### Usage:
+Previous command-line scripts (`populate-courses.ts`, `split_document.mjs`) have been deprecated and removed in favor of:
+- The web-based admin interface (for course population)
+- The main document-parser API (for document processing)
 
-Run the script with:
-```bash
-npm run populate-courses
-```
-
-### Features:
-
-- ✅ **Batch writes** - Uses Firestore batching for efficient writes (500 docs per batch)
-- ✅ **Rate limiting** - 1 second delay between programs to avoid overwhelming the API
-- ✅ **Error handling** - Continues processing even if individual programs fail
-- ✅ **Progress tracking** - Shows detailed progress for each program
-- ✅ **Summary report** - Displays final statistics when complete
-
-### Example Output:
-
-```
-🚀 Starting course population script...
-
-✅ Loaded 49 programs from courses.json
-
-[1/49] Processing: African and African American Studies (AAAS)
-  📚 Found 25 courses
-  💾 Committed 25 courses to Firestore
-  ✅ Successfully processed AAAS
-
-[2/49] Processing: Anthropology (ANTH)
-  📚 Found 42 courses
-  💾 Committed 42 courses to Firestore
-  ✅ Successfully processed ANTH
-
-...
-
-============================================================
-📊 Final Summary:
-============================================================
-✅ Successfully processed: 47 programs
-❌ Failed: 2 programs
-📚 Total courses added: 1,234
-============================================================
-
-✨ Script completed!
-```
-
-### Notes:
-
-- The script uses the OpenAI API for parsing course data, so make sure you have sufficient API credits
-- Each program takes approximately 2-3 seconds to process (1 second for scraping + API time + 1 second delay)
-- Total runtime for all programs: ~3-5 minutes
-- Courses are stored with merge enabled, so running the script multiple times won't create duplicates
+These provide better usability, visibility, and integration with the rest of the application.
