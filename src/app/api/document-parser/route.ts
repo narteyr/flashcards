@@ -22,6 +22,9 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const rawFiles = formData.getAll('files');
   const courseId = formData.get('courseId');
+  const courseName = formData.get('courseName');
+  const programCode = formData.get('programCode');
+  const programName = formData.get('programName');
 
   if (!rawFiles.length) {
     return response({ error: 'No files uploaded' }, 400);
@@ -98,6 +101,9 @@ export async function POST(request: NextRequest): Promise<Response> {
       provider: quiz.providerKey,
       chunkCount: allChunks.length,
       courseId: courseId ? String(courseId) : undefined,
+      courseName: courseName ? String(courseName) : undefined,
+      programCode: programCode ? String(programCode) : undefined,
+      programName: programName ? String(programName) : undefined,
       summaries,
       flashcards: quiz.flashcards,
     });

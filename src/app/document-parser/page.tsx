@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useMemo, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Flashcard } from './upload_docs';
 
 interface UploadSummary {
@@ -39,6 +40,7 @@ const PROGRESS_STEPS: Array<{ label: string; value: number }> = [
 ];
 
 export default function DocumentParserPage() {
+  const router = useRouter();
   const [progressIndex, setProgressIndex] = useState(0);
   const [status, setStatus] = useState<string | null>(null);
   const [summaries, setSummaries] = useState<UploadSummary[]>([]);
@@ -55,6 +57,8 @@ export default function DocumentParserPage() {
   const [courseSearchQuery, setCourseSearchQuery] = useState('');
   const [loadingPrograms, setLoadingPrograms] = useState(false);
   const [loadingCourses, setLoadingCourses] = useState(false);
+  const [selectedCourseName, setSelectedCourseName] = useState<string>('');
+  const [selectedProgramName, setSelectedProgramName] = useState<string>('');
 
   const progress = useMemo(() => PROGRESS_STEPS[Math.min(progressIndex, PROGRESS_STEPS.length - 1)], [progressIndex]);
 
@@ -126,9 +130,28 @@ export default function DocumentParserPage() {
     const formData = new FormData(event.currentTarget);
     if (selectedCourse) {
       formData.append('courseId', selectedCourse);
+      formData.append('courseName', selectedCourseName);
+      formData.append('programCode', selectedProgram);
+      formData.append('programName', selectedProgramName);
     }
 
     try {
+      // Step 1: Check if deck already exists
+      setProgressIndex(0);
+      setStatus('Checking for existing deck...');
+      
+      const deckCheckResponse = await fetch(`/api/decks?courseCode=${encodeURIComponent(selectedCourse)}`);
+      const deckCheckData = await deckCheckResponse.json();
+      
+      let existingFlashcards: Flashcard[] = [];
+      if (deckCheckData.exists && deckCheckData.deck) {
+        existingFlashcards = deckCheckData.deck.flashcards || [];
+        setStatus(`Found existing deck with ${existingFlashcards.length} flashcards. Enriching...`);
+      } else {
+        setStatus('Creating new deck...');
+      }
+
+      // Step 2: Upload files
       setProgressIndex(1);
       setStatus('Uploading files…');
 
@@ -147,15 +170,44 @@ export default function DocumentParserPage() {
       }
 
       setProgressIndex(3);
-      setStatus('Generating flashcards…');
+      setStatus('Generating flashcards with AI…');
 
       setSummaries(payload.summaries ?? []);
-      setFlashcards(payload.flashcards ?? []);
+      const newFlashcards = payload.flashcards ?? [];
+      setFlashcards(newFlashcards);
       setProvider(payload.provider ?? null);
       setCourseId(payload.courseId ?? null);
 
+      // Step 3: Save to deck
+      setProgressIndex(3);
+      setStatus('Saving flashcards to deck…');
+
+      const saveDeckResponse = await fetch('/api/decks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseCode: selectedCourse,
+          courseName: selectedCourseName,
+          programCode: selectedProgram,
+          programName: selectedProgramName,
+          flashcards: newFlashcards,
+          userId: 'anonymous', // TODO: Add actual user authentication
+        }),
+      });
+
+      const saveDeckData = await saveDeckResponse.json();
+      if (!saveDeckResponse.ok) {
+        throw new Error(saveDeckData?.error ?? 'Failed to save deck');
+      }
+
       setProgressIndex(4);
-      setStatus(payload.message ?? 'Flashcards ready');
+      setStatus(`${saveDeckData.message} - Redirecting to practice...`);
+
+      // Step 4: Navigate to deck practice page
+      setTimeout(() => {
+        router.push(`/decks/${encodeURIComponent(selectedCourse.replace(/\s+/g, '_'))}`);
+      }, 1500);
+      
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unexpected error';
       setStatus(`Error: ${message}`);
@@ -200,6 +252,9 @@ export default function DocumentParserPage() {
                   setSelectedProgram(event.target.value);
                   setSelectedCourse('');
                   setCourseSearchQuery('');
+                  // Store program name
+                  const program = programs.find(p => p.code === event.target.value);
+                  setSelectedProgramName(program?.name || '');
                 }}
                 disabled={loadingPrograms}
                 required
@@ -255,7 +310,10 @@ export default function DocumentParserPage() {
                             name="courseId"
                             value={course.code}
                             checked={selectedCourse === course.code}
-                            onChange={(e) => setSelectedCourse(e.target.value)}
+                            onChange={(e) => {
+                              setSelectedCourse(e.target.value);
+                              setSelectedCourseName(course.name);
+                            }}
                             className="mt-1 cursor-pointer"
                             required
                           />
