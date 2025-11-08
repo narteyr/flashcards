@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState, useEffect } from 'react';
 import type { Flashcard } from './upload_docs';
 
 interface UploadSummary {
@@ -19,6 +19,17 @@ interface ApiResponse {
   courseId?: string;
 }
 
+interface Program {
+  code: string;
+  name: string;
+  totalCourses: number;
+}
+
+interface Course {
+  code: string;
+  name: string;
+}
+
 const PROGRESS_STEPS: Array<{ label: string; value: number }> = [
   { label: 'Preparing upload', value: 10 },
   { label: 'Uploading files', value: 30 },
@@ -33,11 +44,75 @@ export default function DocumentParserPage() {
   const [summaries, setSummaries] = useState<UploadSummary[]>([]);
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [provider, setProvider] = useState<string | null>(null);
-  const [selectedCourse, setSelectedCourse] = useState<string>('course-intro-ai');
+  const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [courseId, setCourseId] = useState<string | null>(null);
   const [isSubmitting, setSubmitting] = useState(false);
 
+  // Program and course selection states
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [selectedProgram, setSelectedProgram] = useState<string>('');
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseSearchQuery, setCourseSearchQuery] = useState('');
+  const [loadingPrograms, setLoadingPrograms] = useState(false);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+
   const progress = useMemo(() => PROGRESS_STEPS[Math.min(progressIndex, PROGRESS_STEPS.length - 1)], [progressIndex]);
+
+  // Load programs on mount
+  useEffect(() => {
+    async function fetchPrograms() {
+      setLoadingPrograms(true);
+      try {
+        const response = await fetch('/api/programs');
+        const data = await response.json();
+        if (data.status === 'ok') {
+          setPrograms(data.programs);
+        }
+      } catch (error) {
+        console.error('Error fetching programs:', error);
+      } finally {
+        setLoadingPrograms(false);
+      }
+    }
+    fetchPrograms();
+  }, []);
+
+  // Load courses when program is selected
+  useEffect(() => {
+    async function fetchCourses() {
+      if (!selectedProgram) {
+        setCourses([]);
+        return;
+      }
+
+      setLoadingCourses(true);
+      try {
+        const response = await fetch(`/api/programs/courses?programCode=${selectedProgram}`);
+        const data = await response.json();
+        if (data.status === 'ok') {
+          setCourses(data.courses);
+        }
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+      } finally {
+        setLoadingCourses(false);
+      }
+    }
+    fetchCourses();
+  }, [selectedProgram]);
+
+  // Filter courses based on search query
+  const filteredCourses = useMemo(() => {
+    if (!courseSearchQuery.trim()) {
+      return courses;
+    }
+    const query = courseSearchQuery.toLowerCase();
+    return courses.filter(
+      (course) =>
+        course.code.toLowerCase().includes(query) ||
+        course.name.toLowerCase().includes(query)
+    );
+  }, [courses, courseSearchQuery]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -93,10 +168,10 @@ export default function DocumentParserPage() {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
       <section className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">Document Parser & Quiz Generator</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">Document Parser & Flashcard Generator</h1>
         <p className="mt-2 text-sm text-slate-600">
           Upload plain text, CSV, JSON, PDF, or DOCX files. The server will split them with LangChain and generate
-          flashcards with your configured LLM provider.
+          flashcards with your configured LLM provider. Each group of flashcards is called a deck, and there will be one deck per course.
         </p>
 
         <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
@@ -113,30 +188,97 @@ export default function DocumentParserPage() {
               />
             </label>
           </div>
+          
           <div>
             <label className="block text-sm font-medium text-slate-700">
-              Course
+              Program / Department
               <select
                 className="mt-1 block w-full cursor-pointer rounded-md border border-slate-300 bg-slate-50 p-2 text-sm"
-                name="courseId"
-                value={selectedCourse}
-                onChange={(event) => setSelectedCourse(event.target.value)}
+                name="programCode"
+                value={selectedProgram}
+                onChange={(event) => {
+                  setSelectedProgram(event.target.value);
+                  setSelectedCourse('');
+                  setCourseSearchQuery('');
+                }}
+                disabled={loadingPrograms}
+                required
               >
-                <option value="course-intro-ai">Introduction to AI</option>
-                <option value="course-data-structures">Data Structures</option>
-                <option value="course-organic-chem">Organic Chemistry</option>
-                <option value="course-world-history">World History Survey</option>
+                <option value="">
+                  {loadingPrograms ? 'Loading programs...' : 'Select a program/department'}
+                </option>
+                {programs.map((program) => (
+                  <option key={program.code} value={program.code}>
+                    {program.code} - {program.name} ({program.totalCourses} courses)
+                  </option>
+                ))}
               </select>
             </label>
             <p className="mt-1 text-xs text-slate-500">
-              Select the course where these flashcards should be stored. Future versions will load this list from
-              Firestore.
+              Select the department/program for this deck.
             </p>
           </div>
+
+          {selectedProgram && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                Course
+                <input
+                  type="text"
+                  className="mt-1 block w-full rounded-md border border-slate-300 bg-slate-50 p-2 text-sm"
+                  placeholder="Search by course number or title..."
+                  value={courseSearchQuery}
+                  onChange={(e) => setCourseSearchQuery(e.target.value)}
+                  disabled={loadingCourses}
+                />
+              </label>
+              
+              {loadingCourses ? (
+                <p className="mt-2 text-sm text-slate-500">Loading courses...</p>
+              ) : (
+                <div className="mt-2 max-h-64 overflow-y-auto rounded-md border border-slate-200 bg-white">
+                  {filteredCourses.length === 0 ? (
+                    <p className="p-3 text-sm text-slate-500">
+                      {courseSearchQuery ? 'No courses match your search.' : 'No courses available.'}
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {filteredCourses.map((course) => (
+                        <label
+                          key={course.code}
+                          className={`flex cursor-pointer items-start gap-3 p-3 transition hover:bg-slate-50 ${
+                            selectedCourse === course.code ? 'bg-slate-100' : ''
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="courseId"
+                            value={course.code}
+                            checked={selectedCourse === course.code}
+                            onChange={(e) => setSelectedCourse(e.target.value)}
+                            className="mt-1 cursor-pointer"
+                            required
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-slate-900">{course.code}</div>
+                            <div className="text-xs text-slate-600">{course.name}</div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <p className="mt-1 text-xs text-slate-500">
+                Search and select a course for these flashcards.
+              </p>
+            </div>
+          )}
           <button
             className="inline-flex w-fit items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !selectedCourse}
           >
             {isSubmitting ? 'Processing…' : 'Upload & Generate'}
           </button>

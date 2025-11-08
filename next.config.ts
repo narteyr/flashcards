@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   env: {
-    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
 
     FIREBASE_API_KEY: process.env.FIREBASE_API_KEY || '',
     FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN || '',
