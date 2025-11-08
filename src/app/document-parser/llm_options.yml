@@ -1,0 +1,48 @@
+default_provider: openai_gpt4o
+providers:
+  openai_gpt4o:
+    label: "OpenAI GPT-4.1"
+    provider: "openai"
+    model: "gpt-4.1-mini"
+    env_var: "OPENAI_API_KEY"
+    max_output_tokens: 4096
+    temperature: 0.2
+    description: >
+      Default quiz generator leveraging OpenAI GPT-4.1 Mini; set OPENAI_API_KEY in the environment.
+  gemini_pro:
+    label: "Gemini 1.5 Pro"
+    provider: "google"
+    model: "models/gemini-1.5-pro-latest"
+    env_var: "GEMINI_API_KEY"
+    max_output_tokens: 4096
+    temperature: 0.2
+    description: >
+      Balanced choice for generating detailed quizzes from document chunks.
+      Requires GEMINI_API_KEY in the environment.
+  gemini_flash:
+    label: "Gemini 1.5 Flash"
+    provider: "google"
+    model: "models/gemini-1.5-flash-latest"
+    env_var: "GEMINI_API_KEY"
+    max_output_tokens: 2048
+    temperature: 0.4
+    description: >
+      Faster, lower-cost variant ideal for rapid quiz drafts and iterative refinement.
+  anthropic_claude:
+    label: "Claude 3.5 Sonnet"
+    provider: "anthropic"
+    model: "claude-3-5-sonnet-20240620"
+    env_var: "ANTHROPIC_API_KEY"
+    max_output_tokens: 4096
+    temperature: 0.1
+    description: >
+      High-quality reasoning for nuanced quiz questions; relies on ANTHROPIC_API_KEY.
+metadata:
+  purpose: "Quiz generation from pre-processed document chunks."
+  chunk_guidance:
+    recommended_chunk_size: 1000
+    recommended_chunk_overlap: 150
+  notes:
+    - "Populate API keys in the project .env or shell before invoking providers."
+    - "Switch providers by reading the default_provider or selecting by key."
+
