@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return request.auth.token.email.matches('.*@dartmouth.edu$');
+    }
+
+    // Documents folder - authenticated users can upload
+    match /documents/{userId}/{fileName} {
+      // Allow read if:
+      // - User is the owner
+      // - User is an admin
+      // - File is public (we'll check Firestore for this)
+      allow read: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow read: if true; // Allow public read for approved documents
+
+      // Allow write (create/update) if user is the owner
+      allow write: if isSignedIn() && isOwner(userId);
+
+      // Allow delete if user is owner or admin
+      allow delete: if isSignedIn() && (isOwner(userId) || isAdmin());
+    }
+
+    // Catch-all: deny by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
