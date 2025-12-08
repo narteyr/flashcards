@@ -111,11 +111,11 @@ async function invokeProvider({
 
   if (config.provider === 'openai') {
     const client = new OpenAI({ apiKey });
-    const completion = await client.responses.create({
+    const completion = await client.chat.completions.create({
       model: config.model,
       temperature,
-      max_output_tokens: config.max_output_tokens ?? 4096,
-      input: [
+      max_tokens: config.max_output_tokens ?? 4096,
+      messages: [
         {
           role: 'system',
           content: buildSystemInstructions(),
@@ -125,12 +125,9 @@ async function invokeProvider({
           content: prompt,
         },
       ],
+      response_format: { type: 'json_object' },
     });
-    return (
-      completion.output_text ??
-      completion.output?.map((item) => ('content' in item ? item.content : '')).join('\n') ??
-      ''
-    );
+    return completion.choices[0]?.message?.content ?? '';
   }
 
   throw new Error(`Unsupported provider "${providerKey}" (${config.provider})`);

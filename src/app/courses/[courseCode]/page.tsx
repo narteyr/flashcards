@@ -92,20 +92,20 @@ export default function CoursePage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
       </div>
     );
   }
 
   return (
-    <main className="mx-auto max-w-7xl p-6">
+    <main className="mx-auto max-w-7xl p-6 min-h-screen">
       {/* Course Header */}
       <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold text-slate-900">
+        <h1 className="mb-2 text-3xl font-bold text-[var(--foreground)]">
           {courseCode} {courseName && `- ${courseName}`}
         </h1>
         {programName && (
-          <p className="text-slate-600">{programName}</p>
+          <p className="text-[var(--muted)]">{programName}</p>
         )}
       </div>
 
@@ -158,7 +158,7 @@ export default function CoursePage() {
       {/* Documents Section */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-900">Course Materials</h2>
+          <h2 className="text-2xl font-bold text-[var(--foreground)]">Course Materials</h2>
           <Link href="/documents/upload">
             <Button variant="outline">
               <Upload className="h-4 w-4" />
@@ -170,11 +170,11 @@ export default function CoursePage() {
         {documents.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <FileText className="mx-auto mb-4 h-12 w-12 text-slate-400" />
-              <p className="text-lg font-medium text-slate-900">
+              <FileText className="mx-auto mb-4 h-12 w-12 text-[var(--muted)]" />
+              <p className="text-lg font-medium text-[var(--foreground)]">
                 No materials available yet
               </p>
-              <p className="mt-1 text-slate-600">
+              <p className="mt-1 text-[var(--muted)]">
                 Be the first to contribute study materials for this course!
               </p>
               <Link href="/documents/upload" className="mt-4 inline-block">
@@ -185,12 +185,12 @@ export default function CoursePage() {
         ) : (
           Object.entries(documentsByType).map(([type, docs]) => (
             <div key={type}>
-              <h3 className="mb-4 text-lg font-semibold text-slate-900 capitalize">
+              <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)] capitalize">
                 {type.replace('_', ' ')} ({docs.length})
               </h3>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {docs.map((doc) => (
-                  <Card key={doc.id} className="hover:shadow-md transition-shadow">
+                  <Card key={doc.id} className="group">
                     <CardHeader>
                       <CardTitle className="text-base">{doc.title}</CardTitle>
                       <CardDescription>
@@ -198,10 +198,10 @@ export default function CoursePage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="mb-4 space-y-1 text-sm text-slate-600">
+                      <div className="mb-4 space-y-1 text-sm text-[var(--muted)]">
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4" />
-                          <span>{doc.fileName}</span>
+                          <span className="truncate">{doc.fileName}</span>
                         </div>
                         <div>
                           Uploaded {doc.uploadedAt.toLocaleDateString()}

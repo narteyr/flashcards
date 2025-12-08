@@ -1,14 +1,14 @@
 default_provider: openai_gpt4o
 providers:
   openai_gpt4o:
-    label: "OpenAI GPT-4.1"
+    label: "OpenAI GPT-4o Mini"
     provider: "openai"
-    model: "gpt-4.1-mini"
+    model: "gpt-4o-mini"
     env_var: "OPENAI_API_KEY"
     max_output_tokens: 4096
     temperature: 0.2
     description: >
-      Default quiz generator leveraging OpenAI GPT-4.1 Mini; set OPENAI_API_KEY in the environment.
+      Default quiz generator leveraging OpenAI GPT-4o Mini; set OPENAI_API_KEY in the environment.
   gemini_pro:
     label: "Gemini 1.5 Pro"
     provider: "google"
