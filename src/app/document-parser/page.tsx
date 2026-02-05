@@ -69,60 +69,6 @@ export default function DocumentParserPage() {
 
   const progress = useMemo(() => PROGRESS_STEPS[Math.min(progressIndex, PROGRESS_STEPS.length - 1)], [progressIndex]);
 
-  // Check authentication
-  if (authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 min-h-screen items-center justify-center">
-        <Card className="w-full">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--primary)]/10 border border-[var(--primary)]/30">
-              <Sparkles className="h-8 w-8 text-[var(--primary)]" />
-            </div>
-            <CardTitle className="text-2xl">Sign In Required</CardTitle>
-            <CardDescription className="mt-2">
-              You need to be signed in to generate AI flashcards from your documents
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg border border-[var(--border)] bg-[var(--secondary)] p-4">
-              <h3 className="font-semibold text-[var(--foreground)] mb-2">What you'll get:</h3>
-              <ul className="space-y-2 text-sm text-[var(--muted)]">
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
-                  <span>Upload PDF, DOCX, TXT, CSV, and JSON files</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
-                  <span>AI-powered flashcard generation from your documents</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
-                  <span>Organize flashcards by course and program</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
-                  <span>Practice and track your study progress</span>
-                </li>
-              </ul>
-            </div>
-            <Button onClick={signInWithGoogle} size="lg" className="w-full gap-2">
-              <LogIn className="h-5 w-5" />
-              Sign In with Google
-            </Button>
-          </CardContent>
-        </Card>
-      </main>
-    );
-  }
-
   // Load programs on mount
   useEffect(() => {
     async function fetchPrograms() {
@@ -178,6 +124,60 @@ export default function DocumentParserPage() {
         course.name.toLowerCase().includes(query)
     );
   }, [courses, courseSearchQuery]);
+
+  // Check authentication (AFTER all hooks)
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 min-h-screen items-center justify-center">
+        <Card className="w-full">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--primary)]/10 border border-[var(--primary)]/30">
+              <Sparkles className="h-8 w-8 text-[var(--primary)]" />
+            </div>
+            <CardTitle className="text-2xl">Sign In Required</CardTitle>
+            <CardDescription className="mt-2">
+              You need to be signed in to generate AI flashcards from your documents
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--secondary)] p-4">
+              <h3 className="font-semibold text-[var(--foreground)] mb-2">What you'll get:</h3>
+              <ul className="space-y-2 text-sm text-[var(--muted)]">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
+                  <span>Upload PDF, DOCX, TXT, CSV, and JSON files</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
+                  <span>AI-powered flashcard generation from your documents</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
+                  <span>Organize flashcards by course and program</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
+                  <span>Practice and track your study progress</span>
+                </li>
+              </ul>
+            </div>
+            <Button onClick={signInWithGoogle} size="lg" className="w-full gap-2">
+              <LogIn className="h-5 w-5" />
+              Sign In with Google
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

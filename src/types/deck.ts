@@ -15,6 +15,7 @@ export interface Deck {
   programName: string;
   flashcards: Flashcard[];
   totalCards: number;
+  userId: string; // Owner of the deck
   contributors: string[]; // User IDs who contributed
   createdAt: Date;
   updatedAt: Date;
