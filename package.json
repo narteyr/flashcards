@@ -28,7 +28,7 @@
     "langchain": "^0.3.7",
     "lucide-react": "^0.556.0",
     "mammoth": "^1.6.0",
-    "next": "16.0.1",
+    "next": "^16.1.6",
     "next-themes": "^0.4.6",
     "openai": "^4.63.0",
     "pdf-parse": "^1.1.1",
@@ -48,7 +48,7 @@
     "@types/react-dom": "^19",
     "dotenv": "^17.2.3",
     "eslint": "^9",
-    "eslint-config-next": "16.0.1",
+    "eslint-config-next": "^16.1.6",
     "tailwindcss": "^4.1.17",
     "tsx": "^4.20.6",
     "typescript": "^5"
