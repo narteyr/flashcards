@@ -27,6 +27,8 @@ export default function ProfilePage() {
     if (!user) return;
 
     async function fetchUserDocuments() {
+      if (!user) return;
+
       setLoading(true);
       try {
         const documentsRef = collection(db, 'documents');
