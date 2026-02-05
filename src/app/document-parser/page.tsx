@@ -2,6 +2,12 @@
 
 import { FormEvent, useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Sparkles, Upload, FileText, Loader2, CheckCircle2, BookOpen, Search, LogIn } from 'lucide-react';
 import type { Flashcard } from './upload_docs';
 
 interface UploadSummary {
@@ -41,6 +47,7 @@ const PROGRESS_STEPS: Array<{ label: string; value: number }> = [
 
 export default function DocumentParserPage() {
   const router = useRouter();
+  const { user, loading: authLoading, signInWithGoogle } = useAuth();
   const [progressIndex, setProgressIndex] = useState(0);
   const [status, setStatus] = useState<string | null>(null);
   const [summaries, setSummaries] = useState<UploadSummary[]>([]);
@@ -61,6 +68,60 @@ export default function DocumentParserPage() {
   const [selectedProgramName, setSelectedProgramName] = useState<string>('');
 
   const progress = useMemo(() => PROGRESS_STEPS[Math.min(progressIndex, PROGRESS_STEPS.length - 1)], [progressIndex]);
+
+  // Check authentication
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 min-h-screen items-center justify-center">
+        <Card className="w-full">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--primary)]/10 border border-[var(--primary)]/30">
+              <Sparkles className="h-8 w-8 text-[var(--primary)]" />
+            </div>
+            <CardTitle className="text-2xl">Sign In Required</CardTitle>
+            <CardDescription className="mt-2">
+              You need to be signed in to generate AI flashcards from your documents
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--secondary)] p-4">
+              <h3 className="font-semibold text-[var(--foreground)] mb-2">What you'll get:</h3>
+              <ul className="space-y-2 text-sm text-[var(--muted)]">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
+                  <span>Upload PDF, DOCX, TXT, CSV, and JSON files</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
+                  <span>AI-powered flashcard generation from your documents</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
+                  <span>Organize flashcards by course and program</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-[var(--success)] mt-0.5 flex-shrink-0" />
+                  <span>Practice and track your study progress</span>
+                </li>
+              </ul>
+            </div>
+            <Button onClick={signInWithGoogle} size="lg" className="w-full gap-2">
+              <LogIn className="h-5 w-5" />
+              Sign In with Google
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
 
   // Load programs on mount
   useEffect(() => {
@@ -120,6 +181,12 @@ export default function DocumentParserPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!user) {
+      setStatus('Error: User not authenticated');
+      return;
+    }
+
     setSubmitting(true);
     setProgressIndex(0);
     setStatus('Preparing upload');
@@ -191,7 +258,8 @@ export default function DocumentParserPage() {
           programCode: selectedProgram,
           programName: selectedProgramName,
           flashcards: newFlashcards,
-          userId: 'anonymous', // TODO: Add actual user authentication
+          userId: user.uid,
+          userName: user.displayName || user.email || 'Anonymous',
         }),
       });
 
@@ -218,91 +286,128 @@ export default function DocumentParserPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6">
-      <section className="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">Document Parser & Flashcard Generator</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Upload plain text, CSV, JSON, PDF, or DOCX files. The server will split them with LangChain and generate
-          flashcards with your configured LLM provider. Each group of flashcards is called a deck, and there will be one deck per course.
+    <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-6 min-h-screen animate-fade-in">
+      {/* Header Section */}
+      <div className="text-center mb-4">
+        <div className="inline-flex items-center gap-2 rounded-full bg-[var(--card-bg)] px-4 py-2 text-sm font-medium text-[var(--muted)] shadow-sm border border-[var(--border)] mb-4">
+          <Sparkles className="h-4 w-4 text-[var(--primary)]" />
+          AI-Powered Flashcard Generator
+        </div>
+        <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">
+          Transform Documents into Flashcards
+        </h1>
+        <p className="text-[var(--muted)] max-w-2xl mx-auto">
+          Upload your study materials and let AI generate smart flashcards automatically. Supports PDF, DOCX, TXT, CSV, and JSON files.
         </p>
+      </div>
 
-        <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Upload className="h-5 w-5 text-[var(--primary)]" />
+            Upload & Generate
+          </CardTitle>
+          <CardDescription>
+            Select your documents and course to create an AI-powered flashcard deck
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+
+        <form className="flex flex-col gap-6" onSubmit={handleSubmit}>
+          {/* File Upload */}
+          <div className="space-y-2">
+            <Label htmlFor="files" className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-[var(--primary)]" />
               Documents
+            </Label>
+            <div className="relative">
               <input
-                className="mt-1 block w-full cursor-pointer rounded-md border border-slate-300 bg-slate-50 p-2 text-sm"
+                id="files"
+                className="block w-full cursor-pointer rounded-lg border-2 border-dashed border-[var(--border)] bg-[var(--secondary)] p-4 text-sm text-[var(--foreground)] transition-all file:mr-4 file:cursor-pointer file:rounded-md file:border-0 file:bg-[var(--primary)] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:border-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                 type="file"
                 name="files"
                 accept=".txt,.csv,.json,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 multiple
                 required
               />
-            </label>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-slate-700">
-              Program / Department
-              <select
-                className="mt-1 block w-full cursor-pointer rounded-md border border-slate-300 bg-slate-50 p-2 text-sm"
-                name="programCode"
-                value={selectedProgram}
-                onChange={(event) => {
-                  setSelectedProgram(event.target.value);
-                  setSelectedCourse('');
-                  setCourseSearchQuery('');
-                  // Store program name
-                  const program = programs.find(p => p.code === event.target.value);
-                  setSelectedProgramName(program?.name || '');
-                }}
-                disabled={loadingPrograms}
-                required
-              >
-                <option value="">
-                  {loadingPrograms ? 'Loading programs...' : 'Select a program/department'}
-                </option>
-                {programs.map((program) => (
-                  <option key={program.code} value={program.code}>
-                    {program.code} - {program.name} ({program.totalCourses} courses)
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p className="mt-1 text-xs text-slate-500">
-              Select the department/program for this deck.
+            </div>
+            <p className="text-xs text-[var(--muted)]">
+              Supported formats: PDF, DOCX, TXT, CSV, JSON
             </p>
           </div>
 
+          {/* Program Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="programCode" className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-[var(--primary)]" />
+              Program / Department
+            </Label>
+            <select
+              id="programCode"
+              className="flex h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--secondary)] px-4 py-2 text-sm text-[var(--foreground)] shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-50"
+              name="programCode"
+              value={selectedProgram}
+              onChange={(event) => {
+                setSelectedProgram(event.target.value);
+                setSelectedCourse('');
+                setCourseSearchQuery('');
+                const program = programs.find(p => p.code === event.target.value);
+                setSelectedProgramName(program?.name || '');
+              }}
+              disabled={loadingPrograms}
+              required
+            >
+              <option value="">
+                {loadingPrograms ? 'Loading programs...' : 'Select a program/department'}
+              </option>
+              {programs.map((program) => (
+                <option key={program.code} value={program.code}>
+                  {program.code} - {program.name} ({program.totalCourses} courses)
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-[var(--muted)]">
+              Choose the department for your flashcard deck
+            </p>
+          </div>
+
+          {/* Course Selection */}
           {selectedProgram && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700">
+            <div className="space-y-2">
+              <Label htmlFor="courseSearch" className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-[var(--primary)]" />
                 Course
-                <input
+              </Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
+                <Input
+                  id="courseSearch"
                   type="text"
-                  className="mt-1 block w-full rounded-md border border-slate-300 bg-slate-50 p-2 text-sm"
                   placeholder="Search by course number or title..."
                   value={courseSearchQuery}
                   onChange={(e) => setCourseSearchQuery(e.target.value)}
                   disabled={loadingCourses}
+                  className="pl-10"
                 />
-              </label>
-              
+              </div>
+
               {loadingCourses ? (
-                <p className="mt-2 text-sm text-slate-500">Loading courses...</p>
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-[var(--primary)]" />
+                </div>
               ) : (
-                <div className="mt-2 max-h-64 overflow-y-auto rounded-md border border-slate-200 bg-white">
+                <div className="max-h-64 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--card-bg)]">
                   {filteredCourses.length === 0 ? (
-                    <p className="p-3 text-sm text-slate-500">
+                    <p className="p-4 text-center text-sm text-[var(--muted)]">
                       {courseSearchQuery ? 'No courses match your search.' : 'No courses available.'}
                     </p>
                   ) : (
-                    <div className="divide-y divide-slate-100">
+                    <div className="divide-y divide-[var(--border)]">
                       {filteredCourses.map((course) => (
                         <label
                           key={course.code}
-                          className={`flex cursor-pointer items-start gap-3 p-3 transition hover:bg-slate-50 ${
-                            selectedCourse === course.code ? 'bg-slate-100' : ''
+                          className={`flex cursor-pointer items-start gap-3 p-3 transition-all hover:bg-[var(--card-hover)] ${
+                            selectedCourse === course.code ? 'bg-[var(--secondary)] border-l-2 border-[var(--primary)]' : ''
                           }`}
                         >
                           <input
@@ -314,12 +419,12 @@ export default function DocumentParserPage() {
                               setSelectedCourse(e.target.value);
                               setSelectedCourseName(course.name);
                             }}
-                            className="mt-1 cursor-pointer"
+                            className="mt-1 h-4 w-4 cursor-pointer accent-[var(--primary)]"
                             required
                           />
                           <div className="flex-1">
-                            <div className="text-sm font-medium text-slate-900">{course.code}</div>
-                            <div className="text-xs text-slate-600">{course.name}</div>
+                            <div className="text-sm font-medium text-[var(--foreground)]">{course.code}</div>
+                            <div className="text-xs text-[var(--muted)]">{course.name}</div>
                           </div>
                         </label>
                       ))}
@@ -327,97 +432,175 @@ export default function DocumentParserPage() {
                   )}
                 </div>
               )}
-              
-              <p className="mt-1 text-xs text-slate-500">
-                Search and select a course for these flashcards.
+
+              <p className="text-xs text-[var(--muted)]">
+                Search and select a course for these flashcards
               </p>
             </div>
           )}
-          <button
-            className="inline-flex w-fit items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          {/* Submit Button */}
+          <Button
             type="submit"
             disabled={isSubmitting || !selectedCourse}
+            size="lg"
+            className="w-full gap-2"
           >
-            {isSubmitting ? 'Processing…' : 'Upload & Generate'}
-          </button>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Processing…
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-5 w-5" />
+                Upload & Generate Flashcards
+              </>
+            )}
+          </Button>
         </form>
 
-        <div className="mt-6">
-          <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-slate-500">
-            <span>{progress.label}</span>
-            <span>{progress.value}%</span>
+        {/* Progress Section */}
+        {(isSubmitting || status) && (
+          <div className="mt-6 space-y-3">
+            <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+              <span>{progress.label}</span>
+              <span>{progress.value}%</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--secondary)]">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[var(--primary)] to-blue-600 transition-all duration-500 ease-out"
+                style={{ width: `${progress.value}%` }}
+              />
+            </div>
+            {status && (
+              <div className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--secondary)] p-4">
+                {progress.value === 100 ? (
+                  <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-[var(--success)]" />
+                ) : (
+                  <Loader2 className="h-5 w-5 flex-shrink-0 animate-spin text-[var(--primary)]" />
+                )}
+                <p className="text-sm text-[var(--foreground)]">{status}</p>
+              </div>
+            )}
           </div>
-          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-slate-900 transition-all duration-500 ease-out"
-              style={{ width: `${progress.value}%` }}
-            />
+        )}
+
+        {/* Metadata */}
+        {(provider || courseId) && (
+          <div className="mt-4 flex flex-wrap gap-4 text-xs">
+            {provider && (
+              <div className="flex items-center gap-2 rounded-full bg-[var(--secondary)] px-3 py-1 border border-[var(--border)]">
+                <span className="text-[var(--muted)]">Provider:</span>
+                <span className="font-semibold text-[var(--foreground)]">{provider}</span>
+              </div>
+            )}
+            {courseId && (
+              <div className="flex items-center gap-2 rounded-full bg-[var(--secondary)] px-3 py-1 border border-[var(--border)]">
+                <span className="text-[var(--muted)]">Course ID:</span>
+                <span className="font-semibold text-[var(--foreground)]">{courseId}</span>
+              </div>
+            )}
           </div>
-          {status && (
-            <p className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">{status}</p>
-          )}
-        </div>
-
-        {provider && (
-          <p className="mt-2 text-xs uppercase tracking-wide text-slate-500">
-            Provider: <span className="font-semibold text-slate-900">{provider}</span>
-          </p>
         )}
-        {courseId && (
-          <p className="mt-1 text-xs uppercase tracking-wide text-slate-500">
-            Course ID: <span className="font-semibold text-slate-900">{courseId}</span>
-          </p>
-        )}
-      </section>
+        </CardContent>
+      </Card>
 
+      {/* Chunk Preview */}
       {summaries.length > 0 && (
-        <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-slate-900">Chunk Preview</h2>
-          {summaries.map((result) => (
-            <article key={result.filename} className="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-              <header className="flex justify-between gap-4 text-sm text-slate-600">
-                <span className="font-medium text-slate-800">{result.filename}</span>
-                <span>{result.chunkCount} chunks</span>
-              </header>
-              <ul className="mt-3 space-y-2 text-sm text-slate-700">
-                {result.preview.map((chunk, index) => (
-                  <li key={index} className="rounded bg-slate-50 p-3 font-mono text-xs leading-relaxed">
-                    {chunk}
-                  </li>
-                ))}
-              </ul>
-            </article>
-          ))}
-        </section>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-[var(--primary)]" />
+              Document Chunks
+            </CardTitle>
+            <CardDescription>
+              Preview of how your documents were split for processing
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {summaries.map((result) => (
+              <div key={result.filename} className="rounded-lg border border-[var(--border)] bg-[var(--secondary)] p-4">
+                <div className="flex items-center justify-between gap-4 mb-3">
+                  <span className="font-medium text-[var(--foreground)] text-sm">{result.filename}</span>
+                  <span className="rounded-full bg-[var(--primary)]/10 px-3 py-1 text-xs font-medium text-[var(--primary)] border border-[var(--primary)]/30">
+                    {result.chunkCount} chunks
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {result.preview.map((chunk, index) => (
+                    <div key={index} className="rounded-lg bg-[var(--card-bg)] p-3 border border-[var(--border)]">
+                      <p className="font-mono text-xs leading-relaxed text-[var(--muted)]">
+                        {chunk}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
 
+      {/* Generated Flashcards */}
       {flashcards.length > 0 && (
-        <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-slate-900">Generated Flashcards</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {flashcards.map((card) => (
-              <article key={card.id} className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-                <header>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Front</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">{card.front}</p>
-                </header>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Back</p>
-                  <p className="mt-1 text-sm text-slate-800">{card.back}</p>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[var(--primary)]" />
+              Generated Flashcards
+            </CardTitle>
+            <CardDescription>
+              {flashcards.length} AI-generated flashcards ready for studying
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {flashcards.map((card) => (
+                <div
+                  key={card.id}
+                  className="group relative overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-4 transition-all hover:bg-[var(--card-hover)] hover:shadow-[var(--shadow-lg)]"
+                >
+                  {/* Front */}
+                  <div className="mb-4">
+                    <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+                      Question
+                    </p>
+                    <p className="text-sm font-semibold text-[var(--foreground)] leading-relaxed">
+                      {card.front}
+                    </p>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="my-3 border-t border-[var(--border)]"></div>
+
+                  {/* Back */}
+                  <div className="mb-4">
+                    <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+                      Answer
+                    </p>
+                    <p className="text-sm text-[var(--foreground)] leading-relaxed">
+                      {card.back}
+                    </p>
+                  </div>
+
+                  {/* Tags */}
+                  {card.tags && card.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {card.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-xs font-medium text-[var(--accent)] border border-[var(--accent)]/30"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {card.tags && card.tags.length > 0 && (
-                  <footer className="flex flex-wrap gap-2">
-                    {card.tags.map((tag) => (
-                      <span key={tag} className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-                        {tag}
-                      </span>
-                    ))}
-                  </footer>
-                )}
-              </article>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </main>
   );
