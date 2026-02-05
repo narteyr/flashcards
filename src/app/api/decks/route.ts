@@ -127,6 +127,12 @@ export async function POST(request: NextRequest) {
         updatedAt: now,
       };
 
+      console.log('Creating new deck with data:', {
+        ...newDeck,
+        flashcards: `${flashcards.length} cards`,
+        userId: contributorId,
+      });
+
       await setDoc(deckRef, newDeck);
 
       return NextResponse.json({
